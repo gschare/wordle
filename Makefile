@@ -15,7 +15,9 @@ list:
 install: default
 	sudo chmod a+rx wordle
 	sudo mkdir -p /usr/local/bin
+	sudo mkdir -p ~/Library/Wordle
 	sudo cp ./wordle /usr/local/bin/
+	sudo cp ./words.txt ~/Library/Wordle/
 
 .PHONY: clean
 clean:
