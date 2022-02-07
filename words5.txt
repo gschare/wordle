@@ -731,6 +731,11 @@ sigma
 aside
 essay
 camps
+swipe
+swims
+sting
+goats
+dough
 trace
 packs
 spoke
