@@ -1,11 +1,21 @@
 CC       = gcc
-INCLUDES = -I../cs3157-lab3/solutions/part1
+INCLUDES = -Ilib
 CFLAGS   = -g -Wall $(INCLUDES)
-LDFLAGS  = -g -L../cs3157-lab3/solutions/part1
+LDFLAGS  = -g -Llib
 LDLIBS   = -lmylist
 
 .PHONY: default
-default: wordle
+default: list wordle
+
+.PHONY: list
+list:
+	cd lib && $(MAKE)
+
+.PHONY: install
+install: default
+	sudo chmod a+rx wordle
+	sudo mkdir -p /usr/local/bin
+	sudo cp ./wordle /usr/local/bin/
 
 .PHONY: clean
 clean:
