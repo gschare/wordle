@@ -5,16 +5,16 @@ i.e., _Gregle_
 # How to install
 Open terminal and type the following:
 ```
-    cd
-    git clone https://github.com/gschare/wordle
-    cd wordle
-    make install
+cd
+git clone https://github.com/gschare/wordle
+cd wordle
+make install
 ```
 Then you should be able to type
 ```
-    wordle
+./wordle
 ```
-from anywhere in terminal to play.
+to play.
 
 There are still a lot of bugs which I am working on fixing for a smoother
 experience.
