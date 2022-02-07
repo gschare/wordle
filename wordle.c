@@ -56,10 +56,19 @@ int main(int argc, char **argv) {
     n_guess = 1;
 
     // Choose one of these words at random to be the secret.
-    r = rand() % n_words;
-    secret = words.head;
-    for (int i=0; i<r; i++) {
-        secret = secret->next;
+    if (argc != 2) {
+        r = rand() % n_words;
+        secret = words.head;
+        for (int i=0; i<r; i++) {
+            secret = secret->next;
+        }
+    } else {
+        char *secret_word = argv[1];
+        secret = findNode(&words, secret_word, (int(*)(const void*, const void*))&strcmp);
+        if (secret == NULL) {
+            printf("debug word not in word list\n");
+            exit(1);
+        }
     }
 
     printf("(%d/%d)\n", n_guess, MAX_GUESSES);
@@ -68,9 +77,15 @@ int main(int argc, char **argv) {
         while (1) {
             if (n_guess != 1) {
                 printf("\x1b[%dF", n_guess);
+                if (bad_guess) {
+                    printf("\x1b[1F");
+                }
                 printf("\x1b[2K");
                 printf("(%d/%d)\n", n_guess, MAX_GUESSES);
                 printf("\x1b[%dE", n_guess-1);
+                if (bad_guess) {
+                    printf("\x1b[1E");
+                }
             }
             fgets(guess, sizeof(guess), stdin);
             guess[WORD_LEN] = 0;
@@ -106,6 +121,17 @@ int main(int argc, char **argv) {
         // Return info about letters.
         else {
             for (int i=0; i<WORD_LEN; i++) {
+                if (guess[i] == ((char *)secret->data)[i]) {
+                    // Letter in correct spot: print green.
+                    // This needs to be checked first so that green is highest
+                    // priority, or else we might mislead players in cases where
+                    // the letter appears multiple times in the word.
+                    // e.g. in the word 'swiss', the second and third 's' will
+                    // see the first 's' and stop at yellow without this check.
+                    color = "\033[1;32m";
+                    printf("%s%c", color, guess[i]);
+                    continue;
+                }
                 for (int j=0; j<WORD_LEN; j++) {
                     if (guess[i] == ((char *)secret->data)[j]) {
                         // Letter i of guess is in secret word.
