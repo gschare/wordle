@@ -36,7 +36,7 @@ void print_word(void *w) {
 int main(int argc, char **argv) {
     // Load the words.
     struct List words;
-    char *filename = "~/Library/Wordle/words.txt";
+    char *filename = "words.txt";
     int n_words = load_words(&words, filename);
 
     // Seed randomness.
