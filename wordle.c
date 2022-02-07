@@ -9,15 +9,15 @@
 #define MAX_GUESSES 6
 
 enum L_STATUS {
-    CORRECT,
-    WRONG,
+    UNGUESSED,
     UNUSED,
-    UNGUESSED
+    WRONG,
+    CORRECT
 };
 
 struct Letter {
     enum L_STATUS status;
-    struct List *locs;
+    int locs[WORD_LEN];
     int times;
     char letter;
 };
@@ -67,7 +67,6 @@ int main(int argc, char **argv) {
     char *secret_word;
     char *color;
     int c;
-    int bad_guess = 0;
     struct Letter alphabet[26];
 
     // Start a game.
@@ -92,20 +91,16 @@ int main(int argc, char **argv) {
 
     // Set up the alphabet.
     for (char c='a'; c<='z'; c++) {
-        struct List *locs = malloc(sizeof(struct List));
-        initList(locs);
-        struct Node *prev = locs->head;
         int count = 0;
         for (int i=0; i<WORD_LEN; i++) {
             if (secret_word[i] == c) {
-                int *p = malloc(sizeof(int));
-                *p = i;
-                prev = addAfter(locs, prev, p);
+                alphabet[c-'a'].locs[i] = 1;
                 count++;
+            } else {
+                alphabet[c-'a'].locs[i] = 0;
             }
         }
         alphabet[c-'a'].status = UNGUESSED;
-        alphabet[c-'a'].locs   = locs;
         alphabet[c-'a'].times  = count;
         alphabet[c-'a'].letter = c;
     }
@@ -142,15 +137,9 @@ int main(int argc, char **argv) {
 
                 // Update guess counter.
                 printf("\x1b[%dF", n_guess);
-                if (bad_guess) {
-                    printf("\x1b[1F");
-                }
                 printf("\x1b[2K");
                 printf("(%d/%d)\n", n_guess, MAX_GUESSES);
                 printf("\x1b[%dE", n_guess-1);
-                if (bad_guess) {
-                    printf("\x1b[1E");
-                }
             }
             fgets(guess, sizeof(guess), stdin);
             guess[WORD_LEN] = 0;
@@ -166,20 +155,13 @@ int main(int argc, char **argv) {
             }
             printf("\x1b[1F");
             printf("\x1b[2K");
-            if (bad_guess) {
-                printf("\x1b[1F");
-                printf("\x1b[2K");
-                continue;
-            }
 
             // Make sure the word is in the list.
             guess_node = findNode(&guesses, guess, (int(*)(const void *,const void *))&strcmp);
             if (guess_node == NULL) {
-                //bad_guess = 1;
                 continue;
             } else {
                 n_guess++;
-                bad_guess = 0;
                 break;
             }
         }
@@ -193,6 +175,7 @@ int main(int argc, char **argv) {
         }
         // Return info about letters.
         // Come up with a better DS+algo for this search.
+        // Should use the alphabet.
         else {
             for (int i=0; i<WORD_LEN; i++) {
                 if (guess[i] == ((char *)secret->data)[i]) {
@@ -215,16 +198,21 @@ int main(int argc, char **argv) {
                             color = "\033[1;32m";
                             alphabet[guess[i]-'a'].status = CORRECT;
                         } else {
-                            // Letter not in correct spot: print yellow.
+                            // Letter not in correct spot: print yellow,
+                            // but don't update the alphabet list if we already
+                            // know where that character is.
                             color = "\033[1;33m";
-                            alphabet[guess[i]-'a'].status = WRONG;
+                            if (alphabet[guess[i]-'a'].status == UNGUESSED) {
+                                alphabet[guess[i]-'a'].status = WRONG;
+                            }
                         }
                         break;
                     } else {
                         // Letter i of guess not in secret word.
-                        // Print white.
+                        // Print red.
                         color = "\033[0;31m";
-                        alphabet[guess[i]-'a'].status = UNUSED;
+                        if (alphabet[guess[i]-'a'].status == UNGUESSED)
+                            alphabet[guess[i]-'a'].status = UNUSED;
                     }
                 }
                 printf("%s%c", color, guess[i]);
@@ -241,9 +229,5 @@ int main(int argc, char **argv) {
 
     free_words(&answers);
     free_words(&guesses);
-    for (int i=0; i<26; i++) {
-        traverseList(alphabet[i].locs, &free);
-        removeAllNodes(alphabet[i].locs);
-    }
     return 0;
 }
