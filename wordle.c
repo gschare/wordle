@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
                     } else {
                         // Letter i of guess not in secret word.
                         // Print white.
-                        color = "\033[0;37m";
+                        color = "\033[0m";
                     }
                 }
                 printf("%s%c", color, guess[i]);
