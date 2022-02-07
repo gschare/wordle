@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     struct List answers;
     struct List guesses;
     int n_answers = load_words(&answers, "words-answers.txt");
-    int n_guesses = load_words(&guesses, "words-guesses.txt");
+    load_words(&guesses, "words-guesses.txt");
 
     // Seed randomness.
     srand(time(NULL));
@@ -154,24 +154,28 @@ int main(int argc, char **argv) {
             }
             fgets(guess, sizeof(guess), stdin);
             guess[WORD_LEN] = 0;
+            if (guess[strlen(guess)-1] == '\n')
+                guess[strlen(guess)-1] = 0;
             for (int i=0; guess[i]; i++) {
                 guess[i] = tolower(guess[i]);
             }
             // Discard excess chars.
-            while ((c = fgetc(stdin)) != 0 && c != '\n')
-                ;
+            if (strlen(guess) == 5) {
+                while ((c = fgetc(stdin)) != 0 && c != '\n')
+                    ;
+            }
             printf("\x1b[1F");
             printf("\x1b[2K");
             if (bad_guess) {
                 printf("\x1b[1F");
                 printf("\x1b[2K");
+                continue;
             }
 
             // Make sure the word is in the list.
             guess_node = findNode(&guesses, guess, (int(*)(const void *,const void *))&strcmp);
             if (guess_node == NULL) {
-                printf("Word '%s' not recognized. Guess again.\n", guess);
-                bad_guess = 1;
+                //bad_guess = 1;
                 continue;
             } else {
                 n_guess++;
