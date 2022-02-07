@@ -36,9 +36,10 @@ void print_word(void *w) {
 
 int main(int argc, char **argv) {
     // Load the words.
-    struct List words;
-    char *filename = "words.txt";
-    int n_words = load_words(&words, filename);
+    struct List answers;
+    struct List guesses;
+    int n_answers = load_words(&answers, "words-answers.txt");
+    int n_guesses = load_words(&guesses, "words-guesses.txt");
 
     // Seed randomness.
     srand(time(NULL));
@@ -58,14 +59,14 @@ int main(int argc, char **argv) {
 
     // Choose one of these words at random to be the secret.
     if (argc != 2) {
-        r = rand() % n_words;
-        secret = words.head;
+        r = rand() % n_answers;
+        secret = answers.head;
         for (int i=0; i<r; i++) {
             secret = secret->next;
         }
     } else {
         char *secret_word = argv[1];
-        secret = findNode(&words, secret_word, (int(*)(const void*, const void*))&strcmp);
+        secret = findNode(&answers, secret_word, (int(*)(const void*, const void*))&strcmp);
         if (secret == NULL) {
             printf("debug word not in word list\n");
             exit(1);
@@ -104,7 +105,7 @@ int main(int argc, char **argv) {
             }
 
             // Make sure the word is in the list.
-            guess_node = findNode(&words, guess, (int(*)(const void *,const void *))&strcmp);
+            guess_node = findNode(&guesses, guess, (int(*)(const void *,const void *))&strcmp);
             if (guess_node == NULL) {
                 printf("Word '%s' not recognized. Guess again.\n", guess);
                 bad_guess = 1;
@@ -123,6 +124,7 @@ int main(int argc, char **argv) {
             break;
         }
         // Return info about letters.
+        // Come up with a better DS+algo for this search.
         else {
             for (int i=0; i<WORD_LEN; i++) {
                 if (guess[i] == ((char *)secret->data)[i]) {
@@ -165,6 +167,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    free_words(&words);
+    free_words(&answers);
+    free_words(&guesses);
     return 0;
 }
