@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <ctype.h>
 #include "mylist.h"
 
 #define WORD_LEN 5
@@ -89,6 +90,9 @@ int main(int argc, char **argv) {
             }
             fgets(guess, sizeof(guess), stdin);
             guess[WORD_LEN] = 0;
+            for (int i=0; guess[i]; i++) {
+                guess[i] = tolower(guess[i]);
+            }
             // Discard excess chars.
             while ((c = fgetc(stdin)) != 0 && c != '\n')
                 ;
