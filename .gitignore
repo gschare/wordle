@@ -1,0 +1,6 @@
+wordle
+*.dSYM/
+*.o
+a.out
+lib/mylist-test
+lib/libmylist.a
