@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
                         // If the letter was guessed before but is now wrong as
                         // entered (and the previous conditions were false),
                         // print yellow and do not update the alphabet.
-                        if (l->times_guessed == l->times) {
+                        if (l->times_guessed >= l->times) {
                             color = BRIGHT_RED;
                         } else if (l->status == UNGUESSED) {
                             color = BRIGHT_YELLOW;
@@ -253,12 +253,12 @@ int main(int argc, char **argv) {
                 // Print red if this is the case.
                 // Only touch the alphabet if it was previously unguessed.
                 if (l->status == UNGUESSED) {
-                    color = RED;
+                    color = BRIGHT_RED;
                     l->status = UNUSED;
                 // Finally, if we already know the letter does not appear anywhere
                 // in the secret word, we can safely color it red.
                 } else if (l->status == UNUSED) {
-                    color = RED;
+                    color = BRIGHT_RED;
                 }
                 l->times_guessed++;
                 printf("%s%c", color, guess[i]);
