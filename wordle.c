@@ -8,6 +8,14 @@
 #define WORD_LEN 5
 #define MAX_GUESSES 6
 
+char *NORMAL        = "\033[0m";
+char *RED           = "\033[0;31m";
+char *BRIGHT_RED    = "\033[1;31m";
+char *GREEN         = "\033[0;32m";
+char *BRIGHT_GREEN  = "\033[1;32m";
+char *YELLOW        = "\033[0;33m";
+char *BRIGHT_YELLOW = "\033[1;33m";
+
 enum L_STATUS {
     UNGUESSED,
     UNUSED,
@@ -19,6 +27,7 @@ struct Letter {
     enum L_STATUS status;
     int locs[WORD_LEN];
     int times;
+    int times_guessed;
     char letter;
 };
 
@@ -102,6 +111,7 @@ int main(int argc, char **argv) {
         }
         alphabet[c-'a'].status = UNGUESSED;
         alphabet[c-'a'].times  = count;
+        alphabet[c-'a'].times_guessed  = 0;
         alphabet[c-'a'].letter = c;
     }
 
@@ -114,6 +124,11 @@ int main(int argc, char **argv) {
 
     // Outer game loop for each guess.
     while (1) {
+        // Reset the alphabet guesses.
+        for (int i=0; i<26; i++) {
+            alphabet[i].times_guessed = 0;
+        }
+
         // Take user input.
         while (1) {
             if (n_guess != 1) {
@@ -122,17 +137,17 @@ int main(int argc, char **argv) {
                 printf("\x1b[2K");
                 for (int i=0; i<26; i++) {
                     if (alphabet[i].status == UNGUESSED) {          // Normal
-                        color = "\033[0m";
+                        color = NORMAL;
                     } else if (alphabet[i].status == UNUSED) {      // Red
-                        color = "\033[0;31m";
+                        color = RED;
                     } else if (alphabet[i].status == CORRECT) {     // Green
-                        color = "\033[0;32m";
+                        color = GREEN;
                     } else if (alphabet[i].status == WRONG) {       // Yellow
-                        color = "\033[0;33m";
+                        color = YELLOW;
                     }
                     printf("%s%c", color, toupper(alphabet[i].letter));
                 }
-                printf("\033[0m\n");
+                printf("%s\n", NORMAL);
                 printf("\x1b[%dE", n_guess-1+1);
 
                 // Update guess counter.
@@ -169,55 +184,86 @@ int main(int argc, char **argv) {
         // Check if it's the secret word.
         guess_node = findNode(&answers, guess, (int(*)(const void *, const void *))&strcmp);
         if (guess_node == secret) {
-            printf("\033[1;32m%s\033[0m\n", (char *)secret->data);
+            printf("%s%s%s\n", BRIGHT_GREEN, (char *)secret->data, NORMAL);
             printf("You got it!\n");
             break;
         }
         // Return info about letters.
         // Come up with a better DS+algo for this search.
         // Should use the alphabet.
+
+        /* Guess letters:
+         * Green if in correct spot.
+         * Red if:
+         *   - not in word
+         *   - all other instances accounted for by green or yellow.
+         * Yellow if in word but not in correct spot
+         * If there are more instances of a letter in the guess than in the
+         * secret word, highlight the earlier ones yellow first, but green takes
+         * priority.
+         */
         else {
+            // Iterate over letters in the guess.
+            // First count up the times you got it in the correct place.
+            // go through again and decide how to print.
             for (int i=0; i<WORD_LEN; i++) {
-                if (guess[i] == ((char *)secret->data)[i]) {
-                    // Letter in correct spot: print green.
-                    // This needs to be checked first so that green is highest
-                    // priority, or else we might mislead players in cases where
-                    // the letter appears multiple times in the word.
-                    // e.g. in the word 'swiss', the second and third 's' will
-                    // see the first 's' and stop at yellow without this check.
-                    color = "\033[1;32m";
+                struct Letter *l = alphabet + (guess[i]-'a');
+                if (l->locs[i]) {
+                    l->times_guessed++;
+                }
+            }
+
+            for (int i=0; i<WORD_LEN; i++) {
+                struct Letter *l = alphabet + (guess[i]-'a');
+
+                // Handle green.
+                if (l->locs[i]) {
+                    color = BRIGHT_GREEN;
                     printf("%s%c", color, guess[i]);
-                    alphabet[guess[i]-'a'].status = CORRECT;
+                    l->status = CORRECT;
                     continue;
                 }
+
+                // Handle yellow and red.
                 for (int j=0; j<WORD_LEN; j++) {
-                    if (guess[i] == ((char *)secret->data)[j]) {
+                    if (l->locs[j] ) {
                         // Letter i of guess is in secret word.
-                        if (i == j) {
-                            // Letter in correct spot: print green.
-                            color = "\033[1;32m";
-                            alphabet[guess[i]-'a'].status = CORRECT;
+                        // If already found all the instances, print red but
+                        // don't touch the alphabet.
+                        // If the letter was unguessed, print yellow and update
+                        // the alphabet.
+                        // If the letter was guessed before but is now wrong as
+                        // entered (and the previous conditions were false),
+                        // print yellow and do not update the alphabet.
+                        if (l->times_guessed == l->times) {
+                            color = BRIGHT_RED;
+                        } else if (l->status == UNGUESSED) {
+                            color = BRIGHT_YELLOW;
+                            l->status = WRONG;
                         } else {
-                            // Letter not in correct spot: print yellow,
-                            // but don't update the alphabet list if we already
-                            // know where that character is.
-                            color = "\033[1;33m";
-                            if (alphabet[guess[i]-'a'].status == UNGUESSED) {
-                                alphabet[guess[i]-'a'].status = WRONG;
-                            }
+                            color = BRIGHT_YELLOW;
                         }
                         break;
-                    } else {
-                        // Letter i of guess not in secret word.
-                        // Print red.
-                        color = "\033[0;31m";
-                        if (alphabet[guess[i]-'a'].status == UNGUESSED)
-                            alphabet[guess[i]-'a'].status = UNUSED;
                     }
                 }
+                // If we went through all the locs and didn't find this letter,
+                // then it should appear still unguessed since we haven't decided
+                // what else to do with it.
+                // In that case, letter i of guess is not in the secret word.
+                // Print red if this is the case.
+                // Only touch the alphabet if it was previously unguessed.
+                if (l->status == UNGUESSED) {
+                    color = RED;
+                    l->status = UNUSED;
+                // Finally, if we already know the letter does not appear anywhere
+                // in the secret word, we can safely color it red.
+                } else if (l->status == UNUSED) {
+                    color = RED;
+                }
+                l->times_guessed++;
                 printf("%s%c", color, guess[i]);
             }
-            printf("\033[0m\n");
+            printf("%s\n", NORMAL);
         }
 
         if (n_guess > MAX_GUESSES) {
